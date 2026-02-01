@@ -19,8 +19,8 @@ export default function HomePage() {
         },
         {
             icon: Shield,
-            title: 'E-E-A-T Compliant',
-            description: 'Every article is validated for Experience, Expertise, Authority, and Trust.',
+            title: 'Quality Validated',
+            description: 'Content is reviewed for depth, accuracy, and audience alignment.',
         },
         {
             icon: BarChart3,
@@ -46,7 +46,7 @@ export default function HomePage() {
         <div className="space-y-16">
             {/* Hero Section */}
             <section className="text-center space-y-8 py-12">
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-red-50 border border-red-100 rounded-full text-red-600 text-sm font-medium shadow-sm">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary-50 border border-primary-100 rounded-full text-primary-600 text-sm font-medium shadow-sm">
                     <Sparkles className="w-4 h-4" />
                     Powered by CrewAI + Groq
                 </div>
@@ -118,7 +118,7 @@ export default function HomePage() {
             </section>
 
             {/* CTA Section */}
-            <section className="glass rounded-3xl p-12 text-center space-y-6 bg-gradient-to-r from-red-50 to-orange-50 border border-red-100">
+            <section className="glass rounded-3xl p-12 text-center space-y-6 bg-gradient-to-r from-violet-50 to-fuchsia-50 border border-violet-100">
                 <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto shadow-md">
                     <Search className="w-10 h-10 text-primary-600" />
                 </div>

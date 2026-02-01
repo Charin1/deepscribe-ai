@@ -3,35 +3,43 @@
 @tailwind utilities;
 
 :root {
-  /* Light Professional Theme with Cherry Red Accents */
-  --background: 30 40% 98%;
-  /* Warm cream white */
-  --foreground: 0 0% 15%;
-  /* Dark text */
+  /* Premium Red Theme: Energetic, Professional, Inspiring */
+  /* Base Hues: Rose (340), Orange (25), Slate (220) */
+
+  --background: 0 0% 100%;
+  --foreground: 220 40% 10%;
+
   --card: 0 0% 100%;
-  /* Pure white cards */
-  --card-foreground: 0 0% 15%;
+  --card-foreground: 220 40% 10%;
+
   --popover: 0 0% 100%;
-  --popover-foreground: 0 0% 15%;
-  --primary: 0 72% 51%;
-  /* Cherry Red #DC2626 */
+  --popover-foreground: 220 40% 10%;
+
+  /* Primary: Vibrant Rose-Red */
+  --primary: 345 85% 55%;
+  /* #f43f5e */
   --primary-foreground: 0 0% 100%;
-  --secondary: 30 33% 96%;
-  /* Light cream */
-  --secondary-foreground: 0 0% 20%;
-  --muted: 30 20% 94%;
-  /* Warm gray */
-  --muted-foreground: 0 0% 45%;
-  --accent: 0 84% 60%;
-  /* Bright Red #EF4444 */
-  --accent-foreground: 0 0% 100%;
-  --destructive: 0 62.8% 30.6%;
+
+  /* Secondary: Warm Orange/Gold */
+  --secondary: 25 95% 53%;
+  /* #f97316 */
+  --secondary-foreground: 0 0% 100%;
+
+  --muted: 220 14% 96%;
+  --muted-foreground: 220 10% 45%;
+
+  --accent: 345 90% 96%;
+  /* Very light rose */
+  --accent-foreground: 345 90% 35%;
+
+  --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
-  --border: 30 20% 90%;
-  /* Light border */
-  --input: 30 20% 96%;
-  --ring: 0 72% 51%;
-  --radius: 0.75rem;
+
+  --border: 220 13% 91%;
+  --input: 220 13% 91%;
+  --ring: 345 85% 55%;
+
+  --radius: 1rem;
 }
 
 * {
@@ -45,188 +53,135 @@ html {
 }
 
 body {
-  font-family: 'Inter', system-ui, sans-serif;
-  background: linear-gradient(135deg, hsl(30 40% 98%) 0%, hsl(30 30% 95%) 100%);
-  color: hsl(0 0% 15%);
-  min-height: 100vh;
+  font-family: 'Outfit', 'Inter', system-ui, sans-serif;
+  background: linear-gradient(135deg, #FFF1F2 0%, #FFF7ED 100%);
+  /* Rose to Orange fade */
+  color: var(--foreground);
+  height: 100vh;
+  overflow: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: hsl(30 20% 95%);
-  border-radius: 4px;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: hsl(30 10% 80%);
-  border-radius: 4px;
+  background: #fca5a5;
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(30 10% 70%);
+  background: #f87171;
 }
 
-/* Light theme component utilities */
 @layer components {
+
+  /* Glassmorphism */
   .glass {
-    @apply bg-white/80 backdrop-blur-lg border border-gray-200 shadow-sm;
+    @apply bg-white/70 backdrop-blur-xl border border-white/60 shadow-sm supports-[backdrop-filter]:bg-white/60;
   }
 
-  .glass-hover {
-    @apply hover:bg-white hover:border-gray-300 transition-all duration-300;
+  .glass-panel {
+    @apply bg-white/80 backdrop-blur-2xl border border-white/70 shadow-lg supports-[backdrop-filter]:bg-white/70;
   }
 
-  .gradient-border {
-    @apply relative;
-    background: linear-gradient(135deg, hsl(0 0% 100%) 0%, hsl(30 20% 98%) 100%);
-  }
-
-  .gradient-border::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding: 1px;
-    background: linear-gradient(135deg, hsl(0 72% 51% / 0.3) 0%, hsl(0 72% 51% / 0.1) 100%);
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
+  .gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-rose-500 to-orange-500;
   }
 
   .btn-primary {
-    @apply px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-300 shadow-lg shadow-red-500/25 hover:shadow-red-500/40 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100;
+    @apply px-6 py-3.5 bg-gradient-to-r from-rose-500 to-orange-500 text-white font-bold rounded-2xl hover:from-rose-600 hover:to-orange-600 hover:shadow-lg hover:shadow-rose-500/25 hover:-translate-y-0.5 transition-all duration-300 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:shadow-none;
   }
 
   .btn-secondary {
-    @apply px-6 py-3 bg-white border border-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all duration-300;
+    @apply px-6 py-3.5 bg-white border border-gray-200 text-gray-700 font-semibold rounded-2xl hover:bg-gray-50 hover:border-rose-200 hover:text-rose-600 transition-all duration-300 shadow-sm hover:shadow-md;
   }
 
   .input-field {
-    @apply w-full px-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all duration-300;
+    @apply w-full px-5 py-3.5 bg-white border border-gray-200 rounded-2xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 transition-all duration-300 shadow-sm;
   }
 
   .card {
-    @apply bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md hover:border-gray-300 transition-all duration-300;
+    @apply bg-white border border-gray-100 rounded-3xl p-8 shadow-sm hover:shadow-xl hover:shadow-rose-500/5 transition-all duration-500;
   }
 
   .card-interactive {
-    @apply card cursor-pointer hover:bg-gray-50 hover:scale-[1.01] hover:shadow-lg;
+    @apply card cursor-pointer hover:-translate-y-1 hover:border-rose-100;
   }
 }
 
-/* Markdown content styling */
-.prose {
-  @apply text-gray-700 leading-relaxed;
+/* Typography Enhancements */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  @apply tracking-tight text-slate-900;
 }
 
-.prose h1,
-.prose h2,
-.prose h3,
-.prose h4 {
-  @apply text-gray-900 font-semibold mb-4 mt-8 first:mt-0;
+.prose {
+  @apply text-slate-600 leading-relaxed max-w-none;
 }
 
 .prose h1 {
-  @apply text-3xl;
+  @apply text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-orange-600 mb-6 mt-2;
 }
 
 .prose h2 {
-  @apply text-2xl;
+  @apply text-2xl font-bold text-slate-800 mb-4 mt-10 border-b border-rose-100/50 pb-2;
 }
 
 .prose h3 {
-  @apply text-xl;
-}
-
-.prose h4 {
-  @apply text-lg;
+  @apply text-xl font-bold text-slate-700 mb-3 mt-8;
 }
 
 .prose p {
-  @apply mb-4;
+  @apply text-lg mb-6 leading-8;
+}
+
+.prose blockquote {
+  @apply border-l-4 border-rose-500 pl-6 italic text-slate-700 bg-rose-50/50 py-4 rounded-r-2xl my-8;
 }
 
 .prose ul,
 .prose ol {
-  @apply mb-4 pl-6;
-}
-
-.prose ul {
-  @apply list-disc;
-}
-
-.prose ol {
-  @apply list-decimal;
+  @apply mb-6 pl-6 space-y-2;
 }
 
 .prose li {
-  @apply mb-2;
+  @apply marker:text-rose-500;
 }
 
 .prose code {
-  @apply px-1.5 py-0.5 bg-red-50 rounded text-red-600 font-mono text-sm;
-}
-
-.prose pre {
-  @apply bg-gray-100 rounded-lg p-4 overflow-x-auto mb-4;
-}
-
-.prose pre code {
-  @apply bg-transparent p-0 text-gray-800;
-}
-
-.prose blockquote {
-  @apply border-l-4 border-red-500 pl-4 italic text-gray-600 my-4;
+  @apply px-2 py-1 bg-rose-50 text-rose-700 rounded-md font-mono text-sm border border-rose-100;
 }
 
 .prose a {
-  @apply text-red-600 hover:text-red-700 underline;
+  @apply text-rose-600 font-semibold no-underline border-b-2 border-rose-200 hover:border-rose-600 transition-colors;
 }
 
-/* Loading animation */
-.loading-dots::after {
-  content: '';
-  animation: dots 1.5s infinite;
+.prose strong {
+  @apply text-slate-900 font-bold;
 }
 
-@keyframes dots {
-
-  0%,
-  20% {
-    content: '.';
-  }
-
-  40% {
-    content: '..';
-  }
-
-  60%,
-  100% {
-    content: '...';
-  }
-}
-
-/* Agent status indicators */
-.status-queued {
-  @apply text-gray-400;
-}
-
+/* Status Indicators */
 .status-running {
-  @apply text-primary-400 animate-pulse;
+  @apply text-rose-500 animate-pulse font-medium;
 }
 
 .status-completed {
-  @apply text-accent-400;
+  @apply text-emerald-500 font-medium;
 }
 
 .status-failed {
-  @apply text-red-400;
+  @apply text-slate-500 font-medium;
 }

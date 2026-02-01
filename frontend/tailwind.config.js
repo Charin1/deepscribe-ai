@@ -8,47 +8,47 @@ export default {
     theme: {
         extend: {
             colors: {
-                // Cherry Red - Primary
+                // Premium Red (Inspiring/Marketing)
                 primary: {
-                    50: '#fef2f2',
-                    100: '#fee2e2',
-                    200: '#fecaca',
-                    300: '#fca5a5',
-                    400: '#f87171',
-                    500: '#ef4444',  // Main red
-                    600: '#dc2626',  // Cherry red
-                    700: '#b91c1c',
-                    800: '#991b1b',
-                    900: '#7f1d1d',
-                    950: '#450a0a',
+                    50: '#fff1f2',
+                    100: '#ffe4e6',
+                    200: '#fecdd3',
+                    300: '#fda4af',
+                    400: '#fb7185',
+                    500: '#f43f5e',   // Rose-Red (More vibrant/inspiring than pure red)
+                    600: '#e11d48',
+                    700: '#be123c',
+                    800: '#9f1239',
+                    900: '#881337',
+                    950: '#4c0519',
                 },
-                // Tomato Orange - Secondary
+                // Warm Orange (Complementary)
                 secondary: {
                     50: '#fff7ed',
                     100: '#ffedd5',
                     200: '#fed7aa',
                     300: '#fdba74',
                     400: '#fb923c',
-                    500: '#f97316',  // Tomato
+                    500: '#f97316',
                     600: '#ea580c',
                     700: '#c2410c',
                     800: '#9a3412',
                     900: '#7c2d12',
                     950: '#431407',
                 },
-                // Warm accent - Rose
+                // Accent Gradient Hues
                 accent: {
-                    50: '#fff1f2',
-                    100: '#ffe4e6',
-                    200: '#fecdd3',
-                    300: '#fda4af',
-                    400: '#fb7185',
-                    500: '#f43f5e',  // Rose
-                    600: '#e11d48',
-                    700: '#be123c',
-                    800: '#9f1239',
-                    900: '#881337',
-                    950: '#4c0519',
+                    50: '#fef2f2',
+                    100: '#fee2e2',
+                    200: '#fecaca',
+                    300: '#fca5a5',
+                    400: '#f87171',
+                    500: '#ef4444',
+                    600: '#dc2626',
+                    700: '#b91c1c',
+                    800: '#991b1b',
+                    900: '#7f1d1d',
+                    950: '#450a0a',
                 },
             },
             fontFamily: {
