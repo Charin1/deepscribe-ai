@@ -21,9 +21,7 @@ groq>=0.4.2
 langchain-groq>=0.0.1
 langchain-openai>=0.0.1
 
-# Vector Store
-faiss-cpu>=1.7.4
-sentence-transformers>=2.2.2
+
 
 # HTTP Client
 httpx>=0.26.0
