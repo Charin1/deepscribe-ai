@@ -56,6 +56,7 @@ export default function ExecutionPage() {
         { key: 'draft_ready', label: 'Complete', icon: CheckCircle2 },
     ]
     const currentIdx = steps.findIndex(s => s.key === status?.status)
+    const isComplete = status?.status === 'draft_ready'
 
     return (
         <div className="space-y-8">
@@ -85,7 +86,8 @@ export default function ExecutionPage() {
             <div className="card bg-white border-gray-200">
                 <div className="flex items-center justify-between mb-6">
                     {steps.map((step, i) => {
-                        const active = i === currentIdx, done = i < currentIdx
+                        const active = !isComplete && i === currentIdx
+                        const done = isComplete ? i <= currentIdx : i < currentIdx
                         return (<div key={step.key} className="flex items-center">
                             <div className={`flex items-center gap-3 px-4 py-2 rounded-xl transition-all duration-300 ${active ? 'bg-red-50 border border-primary-500/50 text-primary-600 shadow-sm' : done ? 'text-green-600' : 'text-gray-400'}`}>
                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center ${done ? 'bg-green-100' : active ? 'bg-red-100' : 'bg-gray-100'}`}>
