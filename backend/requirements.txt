@@ -20,8 +20,8 @@ crewai>=0.28.0
 groq>=0.4.2
 langchain-groq>=0.0.1
 langchain-openai>=0.0.1
-
-
+langchain_community
+markdown
 
 # HTTP Client
 httpx>=0.26.0

@@ -1,18 +1,23 @@
 """Execution API endpoints for agent orchestration."""
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.api.schemas import DraftResponse, DraftRewriteRequest, ExecutionStatus, ExportRequest, ExportResponse
+from app.api.schemas import DraftResponse, DraftRewriteRequest, DraftUpdateRequest, ExecutionStatus, ExportRequest, ExportResponse
 from app.api.execution_manager import (
     get_execution_state, 
     start_execution as start_sim_execution,
     get_logs_as_dicts,
 )
 from app.core.database import get_db
-from app.models import Draft, Project, ProjectStatus
+from app.models import Draft, Project, ProjectStatus, ProjectLog
+from app.core.llm import get_llm
+from app.core.retry import invoke_with_retry
+from app.agents.editor import create_editor_chain
+from uuid import uuid4
+from datetime import datetime
 
 router = APIRouter(prefix="/projects/{project_id}", tags=["execution"])
 
@@ -47,8 +52,8 @@ async def start_execution(
     project.status = ProjectStatus.RESEARCHING
     await db.commit()
     
-    # Start the simulated execution (runs in background)
-    start_sim_execution(project_id, topic=project.topic)
+    # Start the real execution (runs in background)
+    await start_sim_execution(project_id, topic=project.topic)
     
     return {
         "project_id": project_id,
@@ -79,8 +84,8 @@ async def restart_execution(
             detail=f"Project {project_id} not found",
         )
     
-    # Start the simulated execution (runs in background)
-    start_sim_execution(project_id, topic=project.topic)
+    # Start the real execution (runs in background)
+    await start_sim_execution(project_id, topic=project.topic)
     
     return {
         "project_id": project_id,
@@ -185,11 +190,33 @@ async def get_execution_logs(
             detail=f"Project {project_id} not found",
         )
     
-    # TODO: Fetch logs from Redis or structured logging storage
+    # Fetch logs from DB
+    log_result = await db.execute(
+        select(ProjectLog)
+        .where(ProjectLog.project_id == project_id)
+        .order_by(ProjectLog.timestamp.desc())
+        .limit(limit)
+    )
+    logs = log_result.scalars().all()
+    
+    # Get total count
+    count_result = await db.execute(
+        select(func.count(ProjectLog.id)).where(ProjectLog.project_id == project_id)
+    )
+    total = count_result.scalar() or 0
+
     return {
         "project_id": project_id,
-        "logs": [],
-        "total": 0,
+        "logs": [
+            {
+                "timestamp": log.timestamp.isoformat(),
+                "agent": log.agent,
+                "message": log.message,
+                "level": log.level
+            }
+            for log in logs
+        ],
+        "total": total,
     }
 
 
@@ -232,6 +259,78 @@ async def get_result(
     }
 
 
+@router.put("/result", response_model=DraftResponse)
+async def update_draft_manual(
+    project_id: str,
+    data: DraftUpdateRequest,
+    db: AsyncSession = Depends(get_db),
+) -> Draft:
+    """Manually update the current draft content."""
+    # Get current draft
+    result = await db.execute(
+        select(Draft)
+        .options(selectinload(Draft.insight_score))
+        .where(Draft.project_id == project_id, Draft.is_current == True)
+    )
+    current_draft = result.scalar_one_or_none()
+    
+    if not current_draft:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No draft found for project {project_id}",
+        )
+    
+    # Generate HTML from Markdown
+    content_html = f"<div>{data.content_markdown}</div>"
+    try:
+        import markdown
+        content_html = f"<!DOCTYPE html><html><body>{markdown.markdown(data.content_markdown)}</body></html>"
+    except ImportError:
+        pass
+
+    # Create new draft version to preserve history
+    new_draft = Draft(
+        id=str(uuid4()),
+        project_id=project_id,
+        content_markdown=data.content_markdown,
+        content_html=content_html,
+        word_count=len(data.content_markdown.split()),
+        version=current_draft.version + 1,
+        is_current=True,
+        is_approved=False,
+        seo_title=current_draft.seo_title,
+        meta_description=current_draft.meta_description,
+        faq_schema=current_draft.faq_schema,
+        # We deliberately do NOT copy insight_score as it applies to the old content
+        # Future improvement: Trigger re-scoring
+    )
+
+    # Archive old draft
+    current_draft.is_current = False
+    
+    db.add(new_draft)
+    await db.commit()
+    await db.refresh(new_draft)
+    
+    # Return as dict to avoid async relationship loading issues
+    return {
+        "id": str(new_draft.id),
+        "project_id": str(new_draft.project_id),
+        "content_markdown": new_draft.content_markdown,
+        "content_html": new_draft.content_html,
+        "word_count": new_draft.word_count,
+        "version": new_draft.version,
+        "is_current": new_draft.is_current,
+        "is_approved": new_draft.is_approved,
+        "seo_title": new_draft.seo_title,
+        "meta_description": new_draft.meta_description,
+        "faq_schema": new_draft.faq_schema,
+        "insight_score": None, # Explicitly None for new drafts
+        "created_at": new_draft.created_at,
+        "updated_at": new_draft.updated_at,
+    }
+
+
 @router.post("/rewrite", response_model=DraftResponse)
 async def request_rewrite(
     project_id: str,
@@ -253,9 +352,79 @@ async def request_rewrite(
             detail=f"No draft found for project {project_id}",
         )
     
-    # TODO: Trigger rewrite with CrewAI Editor Agent
-    # For now, return current draft
-    return current_draft
+    # Get project info for context
+    p_result = await db.execute(select(Project).where(Project.id == project_id))
+    project = p_result.scalar_one()
+
+    # Integrate with CrewAI Editor Agent
+    llm = get_llm(temperature=0.3)
+    editor_chain = create_editor_chain(llm)
+    
+    try:
+        # Prepare context for the editor
+        # If specific section, we would target that, but for now we process the whole text 
+        # based on instructions (simplification for this phase)
+        
+        edit_result = await invoke_with_retry(editor_chain, {
+            "content": current_draft.content_markdown,
+            "sources": "User provided instructions: " + data.instructions,
+            "topic": project.topic,
+            "target_audience": project.target_audience,
+            "goal": project.goal.value if hasattr(project.goal, 'value') else str(project.goal),
+            "tone": data.tone_change.value if data.tone_change else (project.tone.value if hasattr(project.tone, 'value') else str(project.tone)),
+            "expertise_level": project.expertise_level.value if hasattr(project.expertise_level, 'value') else str(project.expertise_level),
+        })
+        
+        # Create new draft version
+        new_draft = Draft(
+            id=str(uuid4()),
+            project_id=project_id,
+            content_markdown=edit_result.final_content,
+            content_html=f"<div>{edit_result.final_content}</div>", # Simple conversion
+            word_count=edit_result.word_count,
+            version=current_draft.version + 1,
+            is_current=True,
+            is_approved=False,
+            seo_title=current_draft.seo_title,
+            meta_description=current_draft.meta_description,
+            faq_schema=current_draft.faq_schema,
+        )
+        
+        # Archive old draft
+        current_draft.is_current = False
+        
+        db.add(new_draft)
+        
+        # Update project status
+        project.status = ProjectStatus.EDITING
+        
+        await db.commit()
+        await db.refresh(new_draft) # We need to refresh to get timestamps if we use them
+        
+        return {
+            "id": str(new_draft.id),
+            "project_id": str(new_draft.project_id),
+            "content_markdown": new_draft.content_markdown,
+            "content_html": new_draft.content_html,
+            "word_count": new_draft.word_count,
+            "version": new_draft.version,
+            "is_current": new_draft.is_current,
+            "is_approved": new_draft.is_approved,
+            "seo_title": new_draft.seo_title,
+            "meta_description": new_draft.meta_description,
+            "faq_schema": new_draft.faq_schema,
+            "insight_score": None, # Explicitly None
+            "created_at": new_draft.created_at,
+            "updated_at": new_draft.updated_at,
+        }
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Rewrite failed: {str(e)}",
+        )
 
 
 @router.post("/approve", response_model=DraftResponse)
@@ -298,7 +467,7 @@ async def export_draft(
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     """Export the draft in specified format."""
-    # Get approved draft
+    # Get approved draft (or current draft)
     result = await db.execute(
         select(Draft)
         .where(Draft.project_id == project_id, Draft.is_current == True)
@@ -315,11 +484,22 @@ async def export_draft(
     content = draft.content_markdown
     
     if data.format == "html":
-        # TODO: Convert markdown to HTML
-        content = draft.content_html or f"<html><body>{content}</body></html>"
+        # Convert markdown to HTML
+        try:
+            import markdown
+            html_content = markdown.markdown(content)
+            content = f"<!DOCTYPE html><html><head><title>{draft.seo_title}</title></head><body>{html_content}</body></html>"
+        except ImportError:
+            # Fallback if markdown lib missing
+            content = f"<html><body><pre>{content}</pre></body></html>"
+            
     elif data.format == "wordpress":
-        # TODO: Format for WordPress
-        content = draft.content_html or content
+        # Format for WordPress (HTML Body)
+        try:
+            import markdown
+            content = markdown.markdown(content)
+        except ImportError:
+            pass
     
     response = {
         "content": content,

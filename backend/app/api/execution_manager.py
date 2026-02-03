@@ -38,8 +38,9 @@ def get_execution_state(project_id: str) -> Optional[ExecutionState]:
     return _execution_states.get(project_id)
 
 
-def add_log(state: ExecutionState, agent: str, message: str, level: str = "info"):
-    """Add a log entry to the execution state."""
+async def add_log(state: ExecutionState, agent: str, message: str, level: str = "info"):
+    """Add a log entry to the execution state and database."""
+    # Memory
     log = AgentLog(
         timestamp=datetime.now().isoformat(),
         agent=agent,
@@ -50,6 +51,23 @@ def add_log(state: ExecutionState, agent: str, message: str, level: str = "info"
     # Keep only last 100 logs
     if len(state.logs) > 100:
         state.logs = state.logs[-100:]
+        
+    # Database persistence
+    try:
+        from app.core.database import AsyncSessionLocal
+        from app.models.log import ProjectLog
+        
+        async with AsyncSessionLocal() as db:
+            db_log = ProjectLog(
+                project_id=state.project_id,
+                agent=agent,
+                message=message,
+                level=level
+            )
+            db.add(db_log)
+            await db.commit()
+    except Exception as e:
+        print(f"Failed to persist log: {e}")
 
 
 async def run_pipeline(project_id: str, topic: str):
@@ -70,7 +88,7 @@ async def run_pipeline(project_id: str, topic: str):
         elif "error" in message.lower() or "fail" in message.lower():
             level = "error"
             
-        add_log(state, agent.capitalize(), message, level)
+        await add_log(state, agent.capitalize(), message, level)
         state.current_agent = agent
         state.progress_percent = percent
         # Map agent names to status
@@ -102,10 +120,10 @@ async def run_pipeline(project_id: str, topic: str):
         from app.core.database import AsyncSessionLocal
         from sqlalchemy import select
         from sqlalchemy.orm import selectinload
-        from app.models import Project, Draft, ProjectStatus, Plan, InsightScore
+        from app.models import Project, Draft, ProjectStatus, Plan, InsightScore, ProjectLog
         from uuid import uuid4
 
-        add_log(state, "System", "🚀 Starting DeepScribe AI Pipeline...", "info")
+        await add_log(state, "System", "🚀 Starting DeepScribe AI Pipeline...", "info")
         
         # 1. Fetch project and plan from DB
         async with AsyncSessionLocal() as db:
@@ -219,20 +237,20 @@ async def run_pipeline(project_id: str, topic: str):
 
             await db.commit()
             
-            add_log(state, "System", f"🎉 Draft saved ({word_count} words)!", "success")
+            await add_log(state, "System", f"🎉 Draft saved ({word_count} words)!", "success")
             state.status = "draft_ready"
             state.progress_percent = 100
             state.is_complete = True
 
     except asyncio.CancelledError:
-        add_log(state, "System", "⚠️ Execution cancelled", "warning")
+        await add_log(state, "System", "⚠️ Execution cancelled", "warning")
         state.status = "failed"
         state.is_complete = True
         raise
     except Exception as e:
         import traceback
         traceback.print_exc() # Print to server logs
-        add_log(state, "System", f"❌ Error: {str(e)}", "error")
+        await add_log(state, "System", f"❌ Error: {str(e)}", "error")
         state.status = "failed"
         state.is_complete = True
         
@@ -251,7 +269,7 @@ async def run_pipeline(project_id: str, topic: str):
             print(f"Failed to update project status to FAILED: {db_err}")
 
 
-def start_execution(project_id: str, topic: str = "AI Topic") -> ExecutionState:
+async def start_execution(project_id: str, topic: str = "AI Topic") -> ExecutionState:
     """Start execution for a project (non-blocking)."""
     # Cancel any existing execution
     if project_id in _execution_tasks:

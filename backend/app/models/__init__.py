@@ -11,6 +11,7 @@ from app.models.project import (
 )
 from app.models.research import Citation, ResearchSource
 from app.models.title import SearchIntent, Title
+from app.models.log import ProjectLog
 
 __all__ = [
     # Project
@@ -31,4 +32,6 @@ __all__ = [
     # Draft
     "Draft",
     "InsightScore",
+    # Log
+    "ProjectLog",
 ]

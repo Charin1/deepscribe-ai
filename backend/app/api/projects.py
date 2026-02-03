@@ -19,6 +19,10 @@ from app.api.schemas import (
 )
 from app.core.database import get_db
 from app.models import Draft, Plan, PlanSection, Project, ProjectStatus, Title
+from app.core.llm import get_llm
+from app.core.retry import invoke_with_retry
+from app.agents.title_strategist import create_title_chain
+from app.agents.content_planner import create_planner_chain
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -171,50 +175,53 @@ async def generate_titles(
             detail=f"Project {project_id} not found",
         )
     
-    # TODO: Integrate with CrewAI Title Strategist Agent
-    # For now, return placeholder titles
-    placeholder_titles = [
-        {
-            "title": f"The Ultimate Guide to {project.topic}",
-            "description": "A comprehensive overview covering all essential aspects.",
-            "search_intent": "informational",
-            "difficulty": 6,
-        },
-        {
-            "title": f"How to Master {project.topic} in 2024",
-            "description": "Step-by-step guide for achieving expertise.",
-            "search_intent": "informational",
-            "difficulty": 5,
-        },
-        {
-            "title": f"{project.topic}: What Experts Don't Tell You",
-            "description": "Insider knowledge and hidden strategies revealed.",
-            "search_intent": "informational",
-            "difficulty": 7,
-        },
-        {
-            "title": f"10 Essential {project.topic} Tips for {project.target_audience}",
-            "description": "Targeted advice for your specific audience.",
-            "search_intent": "informational",
-            "difficulty": 4,
-        },
-        {
-            "title": f"Why {project.topic} Matters More Than Ever",
-            "description": "Exploring the growing importance and impact.",
-            "search_intent": "commercial",
-            "difficulty": 5,
-        },
-    ]
-    
+    # Integrate with CrewAI Title Strategist Agent
+    llm = get_llm(temperature=0.7)
+    title_chain = create_title_chain(llm)
+
+    try:
+        result = await invoke_with_retry(title_chain, {
+            "topic": project.topic,
+            "target_audience": project.target_audience,
+            "goal": project.goal.value if hasattr(project.goal, 'value') else str(project.goal),
+            "tone": project.tone.value if hasattr(project.tone, 'value') else str(project.tone),
+            "expertise_level": project.expertise_level.value if hasattr(project.expertise_level, 'value') else str(project.expertise_level),
+        })
+        
+        titles_suggestions = result.titles
+    except Exception as e:
+        print(f"Title generation failed: {e}")
+        # Fallback to placeholders if LLM fails
+        titles_suggestions = [
+            type('obj', (object,), {
+                "title": f"The Ultimate Guide to {project.topic}",
+                "description": "A comprehensive overview covering all essential aspects.",
+                "search_intent": "informational",
+                "difficulty": 5
+            }),
+            type('obj', (object,), {
+                 "title": f"{project.topic} Explained",
+                 "description": "Everything you need to know.",
+                 "search_intent": "informational",
+                 "difficulty": 4
+            })
+        ]
+
     titles = []
-    for i, t_data in enumerate(placeholder_titles):
+    for t_data in titles_suggestions:
+        # Check if t_data is object or dict (Pydantic model vs fallback)
+        title_text = t_data.title if hasattr(t_data, 'title') else t_data['title']
+        description = t_data.description if hasattr(t_data, 'description') else t_data['description']
+        search_intent = t_data.search_intent if hasattr(t_data, 'search_intent') else t_data['search_intent']
+        difficulty = t_data.difficulty if hasattr(t_data, 'difficulty') else t_data['difficulty']
+
         title = Title(
             id=str(uuid4()),
             project_id=project_id,
-            title=t_data["title"],
-            description=t_data["description"],
-            search_intent=t_data["search_intent"],
-            difficulty=t_data["difficulty"],
+            title=title_text,
+            description=description,
+            search_intent=search_intent,
+            difficulty=difficulty,
         )
         db.add(title)
         titles.append(title)
@@ -359,8 +366,33 @@ async def generate_plan(
         await db.delete(existing_plan)
         await db.commit()
     
-    # TODO: Integrate with CrewAI Content Planner Agent
-    # For now, return placeholder plan
+    # Integrate with CrewAI Content Planner Agent
+    llm = get_llm(temperature=0.7)
+    planner_chain = create_planner_chain(llm)
+
+    try:
+        plan_result = await invoke_with_retry(planner_chain, {
+            "title": title_text,
+            "topic": project.topic,
+            "target_audience": project.target_audience,
+            "goal": project.goal.value if hasattr(project.goal, 'value') else str(project.goal),
+            "tone": project.tone.value if hasattr(project.tone, 'value') else str(project.tone),
+            "expertise_level": project.expertise_level.value if hasattr(project.expertise_level, 'value') else str(project.expertise_level),
+            "word_count_min": project.word_count_min,
+            "word_count_max": project.word_count_max
+        })
+        
+        sections_data = plan_result.sections
+    except Exception as e:
+        print(f"Plan generation failed: {e}")
+        # Fallback to placeholders if LLM fails
+        sections_data = [
+            type('obj', (object,), {"heading": "Introduction", "heading_level": 2, "estimated_words": 200, "key_points": ["Hook the reader", "Preview main points"]}),
+            type('obj', (object,), {"heading": f"Understanding {project.topic}", "heading_level": 2, "estimated_words": 400, "key_points": ["Core concepts", "Key terminology"]}),
+            type('obj', (object,), {"heading": "Key Benefits", "heading_level": 2, "estimated_words": 350, "key_points": ["Main benefits"]}),
+            type('obj', (object,), {"heading": "Conclusion", "heading_level": 2, "estimated_words": 150, "key_points": ["Summary", "CTA"]}),
+        ]
+
     plan = Plan(
         id=str(uuid4()),
         project_id=project_id,
@@ -370,24 +402,26 @@ async def generate_plan(
     db.add(plan)
     await db.commit()
     
-    # Create placeholder sections
-    sections_data = [
-        {"heading": "Introduction", "level": 2, "words": 200, "points": ["Hook the reader", "Preview main points"]},
-        {"heading": f"Understanding {project.topic}", "level": 2, "words": 400, "points": ["Core concepts", "Key terminology"]},
-        {"heading": "Key Benefits and Advantages", "level": 2, "words": 350, "points": ["Main benefits", "Real-world applications"]},
-        {"heading": "Best Practices", "level": 2, "words": 400, "points": ["Industry standards", "Expert recommendations"]},
-        {"heading": "Common Challenges and Solutions", "level": 2, "words": 300, "points": ["Typical obstacles", "Proven solutions"]},
-        {"heading": "Conclusion", "level": 2, "words": 150, "points": ["Summary", "Call to action"]},
-    ]
-    
+    # Create sections
     for i, s_data in enumerate(sections_data):
+        # Handle Pydantic model vs fallback object
+        heading = s_data.heading if hasattr(s_data, 'heading') else s_data.heading
+        level = s_data.heading_level if hasattr(s_data, 'heading_level') else 2 # default to 2 if missing
+        # Some models might use 'section_type' or 'level', let's check attributes safely
+        if hasattr(s_data, 'section_type'):
+            # simple mapping if needed, or assume H2
+            pass
+            
+        points = s_data.key_points if hasattr(s_data, 'key_points') else getattr(s_data, 'key_points', [])
+        words = s_data.estimated_words if hasattr(s_data, 'estimated_words') else getattr(s_data, 'estimated_words', 200)
+
         section = PlanSection(
             id=str(uuid4()),
             plan_id=plan.id,
-            heading=s_data["heading"],
-            heading_level=s_data["level"],
-            key_points=s_data["points"],
-            estimated_words=s_data["words"],
+            heading=heading,
+            heading_level=level, 
+            key_points=points,
+            estimated_words=words,
             order=i,
         )
         db.add(section)

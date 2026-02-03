@@ -117,13 +117,25 @@ export default function PlanReviewPage() {
 
     return (
         <div className="space-y-8">
-            <button
-                onClick={() => navigate(`/projects/${id}/titles`)}
-                className="flex items-center gap-2 text-gray-500 hover:text-primary-600 transition-colors"
-            >
-                <ArrowRight className="w-4 h-4 rotate-180" />
-                Back to Titles
-            </button>
+            <div className="flex items-center justify-between">
+                <button
+                    onClick={() => navigate(`/projects/${id}/titles`)}
+                    className="flex items-center gap-2 text-gray-500 hover:text-primary-600 transition-colors"
+                >
+                    <ArrowRight className="w-4 h-4 rotate-180" />
+                    Back to Titles
+                </button>
+
+                {project && ['researching', 'writing', 'editing', 'draft_ready', 'published', 'failed'].includes(project.status) && (
+                    <button
+                        onClick={() => navigate(`/projects/${id}/execution`)}
+                        className="flex items-center gap-2 text-primary-600 hover:text-primary-700 font-medium transition-colors"
+                    >
+                        Next: Execution
+                        <ArrowRight className="w-4 h-4" />
+                    </button>
+                )}
+            </div>
 
             {/* Header */}
             <div className="space-y-2">

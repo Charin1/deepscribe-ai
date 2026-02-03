@@ -190,6 +190,12 @@ class DraftRewriteRequest(BaseModel):
     tone_change: Optional[ProjectTone] = None
 
 
+class DraftUpdateRequest(BaseModel):
+    """Schema for manual draft update."""
+    
+    content_markdown: str = Field(..., min_length=1)
+
+
 # ============ Execution Schemas ============
 
 

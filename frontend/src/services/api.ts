@@ -88,6 +88,11 @@ export const api = {
         return data
     },
 
+    async updateDraft(projectId: string, contentMarkdown: string): Promise<Draft> {
+        const { data } = await client.put(`/projects/${projectId}/result`, { content_markdown: contentMarkdown })
+        return data
+    },
+
     async exportDraft(projectId: string, format: string): Promise<{ content: string; format: string }> {
         const { data } = await client.post(`/projects/${projectId}/export`, { format })
         return data

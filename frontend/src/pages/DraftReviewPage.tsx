@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
+import { useState, useEffect } from 'react'
 import { Edit3, CheckCircle2, Loader2, ArrowRight, Lightbulb } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { api } from '../services/api'
@@ -16,6 +17,25 @@ export default function DraftReviewPage() {
     const approveMutation = useMutation({
         mutationFn: () => api.approveDraft(id!),
         onSuccess: () => navigate(`/projects/${id}/export`),
+    })
+
+    const [isEditing, setIsEditing] = useState(false)
+    const [editContent, setEditContent] = useState('')
+
+    // Sync draft content to edit state when draft loads or edit mode starts
+    useEffect(() => {
+        if (draft?.content_markdown) {
+            setEditContent(draft.content_markdown)
+        }
+    }, [draft])
+
+    const updateMutation = useMutation({
+        mutationFn: () => api.updateDraft(id!, editContent),
+        onSuccess: () => {
+            setIsEditing(false)
+            // refetch is automatic via query key validation usually, 
+            // but we can trust the mutation response or wait for refetch
+        }
     })
 
     if (isLoading) return <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 text-primary-400 animate-spin" /></div>
@@ -73,13 +93,52 @@ export default function DraftReviewPage() {
             )}
 
             <div className="card bg-white border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                    <Edit3 className="w-5 h-5 mr-2 text-primary-600" />
-                    Content
-                </h3>
-                <div className="prose max-w-none text-gray-800">
-                    <ReactMarkdown>{draft?.content_markdown || ''}</ReactMarkdown>
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                        <Edit3 className="w-5 h-5 mr-2 text-primary-600" />
+                        Content
+                    </h3>
+                    {!isEditing ? (
+                        <button
+                            onClick={() => setIsEditing(true)}
+                            className="text-sm px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md font-medium transition-colors"
+                        >
+                            Edit
+                        </button>
+                    ) : (
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => {
+                                    setIsEditing(false)
+                                    setEditContent(draft?.content_markdown || '')
+                                }}
+                                className="text-sm px-3 py-1.5 text-gray-600 hover:text-gray-900 font-medium"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={() => updateMutation.mutate()}
+                                disabled={updateMutation.isPending}
+                                className="text-sm px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white rounded-md font-medium transition-colors flex items-center gap-1"
+                            >
+                                {updateMutation.isPending && <Loader2 className="w-3 h-3 animate-spin" />}
+                                Save Changes
+                            </button>
+                        </div>
+                    )}
                 </div>
+
+                {isEditing ? (
+                    <textarea
+                        value={editContent}
+                        onChange={(e) => setEditContent(e.target.value)}
+                        className="w-full h-[600px] p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono text-sm"
+                    />
+                ) : (
+                    <div className="prose max-w-none text-gray-800">
+                        <ReactMarkdown>{draft?.content_markdown || ''}</ReactMarkdown>
+                    </div>
+                )}
             </div>
 
             <div className="flex justify-between items-center pt-4 border-t border-gray-200">
