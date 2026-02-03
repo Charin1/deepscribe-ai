@@ -1,6 +1,6 @@
 """Database models exports."""
 
-from app.models.draft import Draft, EEATScore
+from app.models.draft import Draft, InsightScore
 from app.models.plan import Plan, PlanSection
 from app.models.project import (
     ExpertiseLevel,
@@ -30,5 +30,5 @@ __all__ = [
     "Citation",
     # Draft
     "Draft",
-    "EEATScore",
+    "InsightScore",
 ]

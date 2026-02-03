@@ -12,7 +12,7 @@ from app.api.execution_manager import (
     get_logs_as_dicts,
 )
 from app.core.database import get_db
-from app.models import Draft, EEATScore, Project, ProjectStatus
+from app.models import Draft, Project, ProjectStatus
 
 router = APIRouter(prefix="/projects/{project_id}", tags=["execution"])
 
@@ -128,12 +128,7 @@ async def get_execution_status(
             "progress_percent": state.progress_percent,
             "logs": get_logs_as_dicts(state),
             "sources_discovered": state.sources_discovered,
-            "confidence_scores": {
-                "experience": 0.85,
-                "expertise": 0.82,
-                "authority": 0.78,
-                "trust": 0.90,
-            } if state.progress_percent > 50 else {},
+            "confidence_scores": {},
         }
     
     current_agent = None
@@ -207,7 +202,7 @@ async def get_result(
     # Get current draft
     result = await db.execute(
         select(Draft)
-        .options(selectinload(Draft.eeat_score))
+        .options(selectinload(Draft.insight_score))
         .where(Draft.project_id == project_id, Draft.is_current == True)
     )
     draft = result.scalar_one_or_none()
@@ -231,7 +226,7 @@ async def get_result(
         "seo_title": draft.seo_title,
         "meta_description": draft.meta_description,
         "faq_schema": draft.faq_schema,
-        "eeat_score": None,  # TODO: serialize if exists
+        "insight_score": draft.insight_score,
         "created_at": draft.created_at,
         "updated_at": draft.updated_at,
     }
@@ -247,7 +242,7 @@ async def request_rewrite(
     # Get current draft
     result = await db.execute(
         select(Draft)
-        .options(selectinload(Draft.eeat_score))
+        .options(selectinload(Draft.insight_score))
         .where(Draft.project_id == project_id, Draft.is_current == True)
     )
     current_draft = result.scalar_one_or_none()
@@ -272,7 +267,7 @@ async def approve_draft(
     # Get current draft and project
     result = await db.execute(
         select(Draft)
-        .options(selectinload(Draft.eeat_score))
+        .options(selectinload(Draft.insight_score))
         .where(Draft.project_id == project_id, Draft.is_current == True)
     )
     draft = result.scalar_one_or_none()

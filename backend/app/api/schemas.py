@@ -141,19 +141,20 @@ class PlanUpdateRequest(BaseModel):
 # ============ Draft Schemas ============
 
 
-class EEATScoreResponse(BaseModel):
-    """Schema for EEAT score response."""
+class InsightScoreResponse(BaseModel):
+    """Schema for I-N-S-I-G-H-T score response."""
 
-    experience_score: float
-    expertise_score: float
-    authority_score: float
-    trust_score: float
+    inspiring_score: float
+    novel_score: float
+    structured_score: float
+    informative_score: float
+    grounded_score: float
+    helpful_score: float
+    trustworthy_score: float
     overall_score: float
-    experience_feedback: Optional[str]
-    expertise_feedback: Optional[str]
-    authority_feedback: Optional[str]
-    trust_feedback: Optional[str]
-    weak_sections: List[str]
+    primary_insight: Optional[str]
+    feedback: List[str]
+    suggestions: List[str]
 
     class Config:
         from_attributes = True
@@ -173,7 +174,7 @@ class DraftResponse(BaseModel):
     seo_title: Optional[str]
     meta_description: Optional[str]
     faq_schema: Optional[List[dict]]
-    eeat_score: Optional[EEATScoreResponse]
+    insight_score: Optional[InsightScoreResponse] = None
     created_at: datetime
     updated_at: datetime
 

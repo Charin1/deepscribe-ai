@@ -174,7 +174,7 @@ class DeepScribePipeline:
             return {
                 "content": final_edit.final_content,
                 "research": str([res.dict() for res in research_results]),
-                "insight_scores": insight_result.dict(),
+                "insight_assessment": insight_result.dict(),
 
                 "word_count": final_edit.word_count
             }

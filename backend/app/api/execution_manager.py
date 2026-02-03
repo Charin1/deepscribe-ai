@@ -102,7 +102,7 @@ async def run_pipeline(project_id: str, topic: str):
         from app.core.database import AsyncSessionLocal
         from sqlalchemy import select
         from sqlalchemy.orm import selectinload
-        from app.models import Project, Draft, ProjectStatus, Plan
+        from app.models import Project, Draft, ProjectStatus, Plan, InsightScore
         from uuid import uuid4
 
         add_log(state, "System", "🚀 Starting DeepScribe AI Pipeline...", "info")
@@ -177,6 +177,46 @@ async def run_pipeline(project_id: str, topic: str):
             
             # Update project status
             project.status = ProjectStatus.DRAFT_READY
+            db.add(new_draft)
+            await db.flush() # Flush to get new_draft.id
+
+            # 4. Save Insight Score
+            if "insight_assessment" in result:
+                assessment = result["insight_assessment"]
+                # Assuming assessment is a dict or Pydantic object
+                # If it's a Pydantic object, access attributes, if dict access keys.
+                # The pipeline likely returns a dict or object. Let's assume dict for safety or convert.
+                
+                # Check if it's an object and convert to dict if needed
+                if hasattr(assessment, "dict"):
+                    assessment_data = assessment.dict()
+                else:
+                    assessment_data = assessment
+
+                insight_score = InsightScore(
+                    draft_id=new_draft.id,
+                    inspiring_score=assessment_data.get("insight_score_inspiring", 0),
+                    novel_score=assessment_data.get("insight_score_novel", 0),
+                    structured_score=assessment_data.get("insight_score_structured", 0),
+                    informative_score=assessment_data.get("insight_score_informative", 0),
+                    grounded_score=assessment_data.get("insight_score_grounded", 0),
+                    helpful_score=assessment_data.get("insight_score_helpful", 0),
+                    trustworthy_score=assessment_data.get("insight_score_trustworthy", 0),
+                    overall_score=(
+                        assessment_data.get("insight_score_inspiring", 0) +
+                        assessment_data.get("insight_score_novel", 0) +
+                        assessment_data.get("insight_score_structured", 0) +
+                        assessment_data.get("insight_score_informative", 0) +
+                        assessment_data.get("insight_score_grounded", 0) +
+                        assessment_data.get("insight_score_helpful", 0) +
+                        assessment_data.get("insight_score_trustworthy", 0)
+                    ) / 7.0,
+                    primary_insight=assessment_data.get("primary_insight", ""),
+                    feedback=assessment_data.get("feedback", []),
+                    suggestions=assessment_data.get("suggestions", []),
+                )
+                db.add(insight_score)
+
             await db.commit()
             
             add_log(state, "System", f"🎉 Draft saved ({word_count} words)!", "success")

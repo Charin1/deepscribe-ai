@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
-import { Edit3, CheckCircle2, Loader2, ArrowRight, Shield } from 'lucide-react'
+import { Edit3, CheckCircle2, Loader2, ArrowRight, Lightbulb } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { api } from '../services/api'
 
@@ -19,8 +19,6 @@ export default function DraftReviewPage() {
     })
 
     if (isLoading) return <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 text-primary-400 animate-spin" /></div>
-
-    const eeat = draft?.eeat_score
 
     return (
         <div className="space-y-8">
@@ -41,20 +39,36 @@ export default function DraftReviewPage() {
                 <div className="h-full w-[80%] bg-primary-600" />
             </div>
 
-            {eeat && (
+            {draft?.insight_score && (
                 <div className="card bg-white border-gray-200">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                        <Shield className="w-5 h-5 mr-2 text-primary-600" />
-                        E-E-A-T Score
+                        <Lightbulb className="w-5 h-5 mr-2 text-primary-600" />
+                        I-N-S-I-G-H-T Score
                     </h3>
-                    <div className="grid grid-cols-4 gap-4">
-                        {[{ l: 'Experience', v: eeat.experience_score }, { l: 'Expertise', v: eeat.expertise_score }, { l: 'Authority', v: eeat.authority_score }, { l: 'Trust', v: eeat.trust_score }].map(s => (
-                            <div key={s.l} className="text-center">
-                                <div className="text-2xl font-bold text-primary-600">{s.v}</div>
-                                <div className="text-sm text-gray-500">{s.l}</div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        {[
+                            { l: 'Inspiring', v: draft.insight_score.inspiring_score },
+                            { l: 'Novel', v: draft.insight_score.novel_score },
+                            { l: 'Structured', v: draft.insight_score.structured_score },
+                            { l: 'Informative', v: draft.insight_score.informative_score },
+                            { l: 'Grounded', v: draft.insight_score.grounded_score },
+                            { l: 'Helpful', v: draft.insight_score.helpful_score },
+                            { l: 'Trustworthy', v: draft.insight_score.trustworthy_score },
+                            { l: 'Overall', v: draft.insight_score.overall_score }
+                        ].map(s => (
+                            <div key={s.l} className="text-center p-3 bg-gray-50 rounded-lg">
+                                <div className="text-2xl font-bold text-primary-600">{Math.round(s.v)}</div>
+                                <div className="text-xs text-gray-500 uppercase tracking-wide mt-1">{s.l}</div>
                             </div>
                         ))}
                     </div>
+
+                    {draft.insight_score.primary_insight && (
+                        <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-4">
+                            <h4 className="text-sm font-semibold text-blue-900 mb-1">Testing Primary Insight</h4>
+                            <p className="text-blue-800 text-sm">{draft.insight_score.primary_insight}</p>
+                        </div>
+                    )}
                 </div>
             )}
 

@@ -53,17 +53,18 @@ export interface Plan {
     updated_at: string
 }
 
-export interface EEATScore {
-    experience_score: number
-    expertise_score: number
-    authority_score: number
-    trust_score: number
+export interface InsightScore {
+    inspiring_score: number
+    novel_score: number
+    structured_score: number
+    informative_score: number
+    grounded_score: number
+    helpful_score: number
+    trustworthy_score: number
     overall_score: number
-    experience_feedback?: string
-    expertise_feedback?: string
-    authority_feedback?: string
-    trust_feedback?: string
-    weak_sections: string[]
+    primary_insight?: string
+    feedback: string[]
+    suggestions: string[]
 }
 
 export interface Draft {
@@ -78,7 +79,7 @@ export interface Draft {
     seo_title?: string
     meta_description?: string
     faq_schema?: object[]
-    eeat_score?: EEATScore
+    insight_score?: InsightScore
     created_at: string
     updated_at: string
 }

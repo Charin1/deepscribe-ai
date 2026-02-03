@@ -1,10 +1,10 @@
-"""Draft and EEAT score database models."""
+"""Draft database models."""
 
 from datetime import datetime
 from typing import TYPE_CHECKING, List, Optional
 from uuid import uuid4
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, Text, func
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, Text, func
 from sqlalchemy.dialects.postgresql import JSON, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -57,18 +57,18 @@ class Draft(Base):
     
     # Relationships
     project: Mapped["Project"] = relationship("Project", back_populates="drafts")
-    eeat_score: Mapped[Optional["EEATScore"]] = relationship(
-        "EEATScore", back_populates="draft", uselist=False, cascade="all, delete-orphan"
+    insight_score: Mapped[Optional["InsightScore"]] = relationship(
+        "InsightScore", back_populates="draft", uselist=False, cascade="all, delete-orphan"
     )
 
     def __repr__(self) -> str:
         return f"<Draft {self.id} v{self.version}>"
 
 
-class EEATScore(Base):
-    """E-E-A-T score breakdown for a draft."""
+class InsightScore(Base):
+    """I-N-S-I-G-H-T score breakdown for a draft."""
 
-    __tablename__ = "eeat_scores"
+    __tablename__ = "insight_scores"
 
     id: Mapped[str] = mapped_column(
         UUID(as_uuid=False),
@@ -84,23 +84,22 @@ class EEATScore(Base):
         unique=True,
     )
     
-    # E-E-A-T scores (0-100)
-    experience_score: Mapped[float] = mapped_column(Float, default=0.0)
-    expertise_score: Mapped[float] = mapped_column(Float, default=0.0)
-    authority_score: Mapped[float] = mapped_column(Float, default=0.0)
-    trust_score: Mapped[float] = mapped_column(Float, default=0.0)
+    # I-N-S-I-G-H-T scores (0-100)
+    inspiring_score: Mapped[float] = mapped_column(Float, default=0.0)
+    novel_score: Mapped[float] = mapped_column(Float, default=0.0)
+    structured_score: Mapped[float] = mapped_column(Float, default=0.0)
+    informative_score: Mapped[float] = mapped_column(Float, default=0.0)
+    grounded_score: Mapped[float] = mapped_column(Float, default=0.0)
+    helpful_score: Mapped[float] = mapped_column(Float, default=0.0)
+    trustworthy_score: Mapped[float] = mapped_column(Float, default=0.0)
     
-    # Overall score
+    # Calculate average
     overall_score: Mapped[float] = mapped_column(Float, default=0.0)
     
-    # Feedback and suggestions
-    experience_feedback: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    expertise_feedback: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    authority_feedback: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    trust_feedback: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    
-    # Weak sections flagged
-    weak_sections: Mapped[List[str]] = mapped_column(JSON, default=list)
+    # Insights and feedback
+    primary_insight: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    feedback: Mapped[List[str]] = mapped_column(JSON, default=list)
+    suggestions: Mapped[List[str]] = mapped_column(JSON, default=list)
     
     # Timestamps
     evaluated_at: Mapped[datetime] = mapped_column(
@@ -108,7 +107,7 @@ class EEATScore(Base):
     )
     
     # Relationships
-    draft: Mapped["Draft"] = relationship("Draft", back_populates="eeat_score")
+    draft: Mapped["Draft"] = relationship("Draft", back_populates="insight_score")
 
     def __repr__(self) -> str:
-        return f"<EEATScore {self.id}: {self.overall_score:.1f}>"
+        return f"<InsightScore {self.id}: {self.overall_score:.1f}>"

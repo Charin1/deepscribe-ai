@@ -8,9 +8,9 @@
 
 ## 🌟 Features
 
-- **🤖 AI Agent Pipeline** - 6 specialized agents (Title Strategist, Content Planner, Researcher, EEAT Validator, Writer, Editor)
+- **🤖 AI Agent Pipeline** - Specialized agents (Title Strategist, Content Planner, Researcher, Writer, Editor)
 - **🔍 Deep Research** - Automated web research with source credibility scoring
-- **✅ E-E-A-T Compliant** - Google quality guidelines enforcement
+- **✨ Quality Content** - High-quality, human-like writing optimized for readability
 - **👤 Human-in-the-Loop** - Control at every step (titles, outlines, drafts)
 - **⚡ Real-time Updates** - WebSocket-powered live agent dashboard
 - **📊 SEO Optimized** - Titles, structure, and metadata optimization
